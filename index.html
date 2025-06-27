@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de QR Code com IA</title>
+    
+    <!-- Tailwind CSS for a modern and responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts for elegant typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles to complement Tailwind CSS */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a7b7e6 0%, #7c93e4 100%); /* Softer background gradient */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-y: auto; /* Allow scrolling on small screens */
+        }
+        .main-card {
+            background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent main card */
+            backdrop-filter: blur(15px); /* Modern blur effect */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); /* Softer and deeper shadow */
+            transition: all 0.3s ease-in-out;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 40px;
+            border: none;
+            cursor: pointer;
+            background-color: transparent;
+            border-radius: 50%;
+            padding: 0;
+            transition: transform 0.2s ease-in-out;
+        }
+        input[type="color"]:hover {
+            transform: scale(1.1);
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 50%;
+            border: 3px solid #cbd5e0; /* More pronounced border */
+        }
+        input[type="color"]::-moz-color-swatch {
+            border-radius: 50%;
+            border: 3px solid #cbd5e0;
+        }
+        /* Smooth transition effect */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        /* Spin animation for loading spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        #ai-notification {
+            transition: opacity 0.5s ease-in-out;
+        }
+        /* Pop-in animation for QR Code */
+        @keyframes qrPopIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .qr-pop-in {
+            animation: qrPopIn 0.4s ease-out forwards;
+        }
+
+        /* Focus style for inputs/textareas */
+        .focus-ring-indigo:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4); /* Softer focus shadow */
+            border-color: #6366f1; /* Focus border color */
+        }
+    </style>
+</head>
+<body class="main-container">
+
+    <div class="w-full max-w-6xl mx-auto main-card rounded-3xl p-8 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+        
+        <!-- Options Column (Left) -->
+        <div class="flex flex-col space-y-8">
+            <div>
+                <h1 class="text-4xl font-extrabold text-gray-800 leading-tight">Gerador de QR Code<br><span class="text-indigo-600">com Inteligência Artificial</span></h1>
+                <p class="text-gray-600 mt-2 text-lg">Crie, personalize e otimize os seus QR Codes de forma inteligente.</p>
+            </div>
+            
+            <!-- ✨ AI Assistant Section ✨ -->
+            <div class="space-y-4 p-6 bg-indigo-50 rounded-xl border border-indigo-200 shadow-inner">
+                <label for="aiPromptInput" class="font-bold text-indigo-800 text-xl flex items-center gap-2">
+                    ✨ Assistente IA Gemini
+                </label>
+                <p class="text-sm text-indigo-700">Descreva o tipo de QR Code que precisa. Ex: "um vCard para João Silva, Empresa X, Telefone Y...", "QR Code para a rede Wi-Fi 'MinhaRede' com senha 'abcd123'...", "link para mapa de Paris...".</p>
+                <textarea id="aiPromptInput" rows="4" class="w-full p-4 border border-indigo-300 rounded-lg focus-ring-indigo transition-all placeholder-indigo-400 text-lg" placeholder="Ex: criar um qr code para a minha rede wi-fi 'MinhaRede' com a palavra-passe 'abc123'"></textarea>
+                <button id="aiGenerateBtn" class="w-full bg-indigo-600 text-white font-bold py-3 px-5 rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed text-lg shadow-md hover:shadow-lg">
+                    <span id="aiBtnText">Gerar com IA</span>
+                    <span id="aiBtnSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="ai-notification" class="text-center text-sm mt-2 opacity-0 font-medium"></div>
+            </div>
+
+            <!-- Main Input -->
+            <div class="space-y-4">
+                <label for="textInput" class="font-bold text-gray-700 text-xl">Conteúdo do QR Code</label>
+                <textarea id="textInput" rows="6" class="w-full p-4 border border-gray-300 rounded-lg focus-ring-indigo transition-all placeholder-gray-400 text-lg" placeholder="O resultado da IA ou o seu texto/URL aparecerá aqui."></textarea>
+            </div>
+
+            <!-- Customization Options -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800 border-b-2 border-indigo-200 pb-3">Personalização</h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="colorDark" class="font-semibold text-gray-700">Cor do Código</label>
+                        <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-xl bg-gray-50">
+                            <input type="color" id="colorDark" value="#000000">
+                            <span id="colorDarkText" class="font-mono text-base text-gray-800">#000000</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="colorLight" class="font-semibold text-gray-700">Cor do Fundo</label>
+                        <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-xl bg-gray-50">
+                            <input type="color" id="colorLight" value="#ffffff">
+                            <span id="colorLightText" class="font-mono text-base text-gray-800">#ffffff</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="size" class="font-semibold text-gray-700">Tamanho (px)</label>
+                        <select id="size" class="w-full p-3 border border-gray-300 rounded-lg focus-ring-indigo bg-white text-base">
+                            <option value="256">256x256</option>
+                            <option value="384">384x384</option>
+                            <option value="512" selected>512x512</option>
+                            <option value="768">768x768</option>
+                            <option value="1024">1024x1024</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="margin" class="font-semibold text-gray-700">Margem (<span id="marginValue">2</span>)</label>
+                        <input type="range" id="margin" min="0" max="10" value="2" class="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="logoInput" class="font-semibold text-gray-700">Logotipo (Opcional)</label>
+                        <input type="file" id="logoInput" accept="image/png, image/jpeg, image/svg+xml" class="w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer transition-all">
+                        <button id="clearLogoBtn" class="hidden text-sm text-red-600 hover:underline mt-1 font-medium">Remover Logotipo</button>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="errorCorrectionLevel" class="font-semibold text-gray-700">Nível de Correção</label>
+                        <select id="errorCorrectionLevel" class="w-full p-3 border border-gray-300 rounded-lg focus-ring-indigo bg-white text-base">
+                            <option value="L">Baixo (~7%)</option>
+                            <option value="M" selected>Médio (~15%)</option>
+                            <option value="Q">Quartil (~25%)</option>
+                            <option value="H">Alto (~30%)</option>
+                        </select>
+                        <p id="logo-warning" class="text-xs text-amber-700 hidden mt-1">💡 Use nível 'Q' ou 'H' para melhor leitura com logotipo.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QR Code Column (Right) -->
+        <div class="flex flex-col items-center justify-center bg-indigo-50 rounded-2xl p-6 lg:p-8 space-y-8 shadow-inner">
+            <h2 class="text-3xl font-bold text-gray-800">Pré-visualização do QR Code</h2>
+            <div id="qr-container" class="relative w-full max-w-sm h-auto aspect-square p-5 bg-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-indigo-200 overflow-hidden">
+                    <canvas id="qrCanvas" class="w-full h-full block qr-pop-in"></canvas>
+                    <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-400 p-4 bg-white">
+                        <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path></svg>
+                        <p class="mt-4 text-base font-semibold">O seu QR Code gerado aparecerá aqui</p>
+                        <p class="text-sm text-gray-500 mt-1">Introduza um texto/URL ou utilize a IA para começar!</p>
+                    </div>
+            </div>
+            
+              <!-- Download Buttons -->
+              <div id="download-section" class="w-full max-w-sm space-y-4 hidden fade-in">
+                <button id="downloadPNG" class="w-full bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-indigo-800 transition-all flex items-center justify-center gap-3 text-lg shadow-md hover:shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                    Transferir PNG
+                </button>
+                <button id="downloadSVG" class="w-full bg-gray-700 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-3 text-lg shadow-md hover:shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 01.954 2.707l-5.656 5.656A1.5 1.5 0 114.18 10.75l5.657-5.657A1.5 1.5 0 0110 3.5zM6 13.5a1.5 1.5 0 100 3h8a1.5 1.5 0 100-3H6z" /></svg>
+                    Transferir SVG
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.onload = () => {
+            // DOM Elements
+            const elements = {
+                textInput: document.getElementById('textInput'),
+                colorDark: document.getElementById('colorDark'),
+                colorLight: document.getElementById('colorLight'),
+                colorDarkText: document.getElementById('colorDarkText'),
+                colorLightText: document.getElementById('colorLightText'),
+                size: document.getElementById('size'),
+                margin: document.getElementById('margin'),
+                marginValue: document.getElementById('marginValue'),
+                errorCorrectionLevel: document.getElementById('errorCorrectionLevel'),
+                logoInput: document.getElementById('logoInput'),
+                clearLogoBtn: document.getElementById('clearLogoBtn'),
+                logoWarning: document.getElementById('logo-warning'),
+                canvas: document.getElementById('qrCanvas'),
+                placeholder: document.getElementById('placeholder'),
+                downloadSection: document.getElementById('download-section'),
+                downloadPNG: document.getElementById('downloadPNG'),
+                downloadSVG: document.getElementById('downloadSVG'),
+                aiPromptInput: document.getElementById('aiPromptInput'),
+                aiGenerateBtn: document.getElementById('aiGenerateBtn'),
+                aiBtnText: document.getElementById('aiBtnText'),
+                aiBtnSpinner: document.getElementById('aiBtnSpinner'),
+                aiNotification: document.getElementById('ai-notification'),
+            };
+
+            // Application State
+            const state = {
+                text: '',
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                size: 512,
+                margin: 2,
+                errorCorrectionLevel: 'M',
+                logo: null,
+                debounceTimer: null
+            };
+            
+            // Notification Functions
+            const showNotification = (message, isError = false) => {
+                elements.aiNotification.textContent = message;
+                // Remove old classes and add new ones for color and opacity
+                elements.aiNotification.classList.remove('text-red-600', 'text-green-600', 'opacity-0');
+                elements.aiNotification.classList.add(isError ? 'text-red-600' : 'text-green-600', 'opacity-100');
+                
+                setTimeout(() => {
+                    elements.aiNotification.classList.remove('opacity-100');
+                    elements.aiNotification.classList.add('opacity-0');
+                }, 4000);
+            };
+
+            // Gemini API Logic
+            const handleAiGeneration = async () => {
+                const userPrompt = elements.aiPromptInput.value.trim();
+                if (!userPrompt) {
+                    showNotification('Por favor, introduza uma instrução para a IA.', true);
+                    return;
+                }
+
+                elements.aiGenerateBtn.disabled = true;
+                elements.aiBtnText.classList.add('hidden');
+                elements.aiBtnSpinner.classList.remove('hidden');
+                showNotification('A IA está a pensar...', false);
+
+                const systemPrompt = `You are a highly intelligent QR code content generator. Your task is to convert a user's natural language request into the precise string format required for a functional QR code.
+                - For Wi-Fi, use the format: WIFI:T:WPA;S:SSID;P:PASSWORD;; (for WPA, WPA2 or WEP. If it's an open network, use WIFI:T:nopass;S:SSID;;)
+                - For a vCard (contact card), use the format: BEGIN:VCARD\nVERSION:3.0\nN:LastName;FirstName\nFN:FirstName LastName\nORG:Organization\nTITLE:Title\nTEL;TYPE=WORK,VOICE:WorkPhone\nTEL;TYPE=HOME,VOICE:HomePhone\nEMAIL:EmailAddress\nURL:Website\nEND:VCARD (only include relevant fields from user's request)
+                - For a map link, use a Google Maps URL: https://www.google.com/maps?q=ADDRESS
+                - For calendar events (iCalendar), use: BEGIN:VCALENDAR... (full iCalendar format)
+                - For simple text or URLs, just return the text/URL.
+                - VERY IMPORTANT: Output ONLY the final, raw string for the QR code. Do not include any explanations, greetings, or markdown formatting like \`\`\`.`;
+                
+                const fullPrompt = `${systemPrompt}\n\nUser request: "${userPrompt}"`;
+                
+                const chatHistory = [{ role: "user", parts: [{ text: fullPrompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        
+                        const rawText = result.candidates[0].content.parts[0].text.trim();
+                        let finalText = rawText;
+                        const urlRegex = /(https?:\/\/[^\s"'`]+)/;
+                        const match = rawText.match(urlRegex);
+                        const lowerCasePrompt = userPrompt.toLowerCase();
+
+                        // Heuristics to refine AI output for URLs
+                        if ((lowerCasePrompt.includes('site') || lowerCasePrompt.includes('url') || lowerCasePrompt.includes('link') || lowerCasePrompt.includes('http')) && match) {
+                            finalText = match[0]; 
+                        }
+
+                        elements.textInput.value = finalText; 
+                        showNotification('Conteúdo gerado com sucesso pela IA!', false);
+                        updateAndGenerate();
+                    } else {
+                        throw new Error('A resposta da IA estava vazia ou num formato inesperado.');
+                    }
+
+                } catch (error) {
+                    console.error("Erro na chamada da API Gemini:", error);
+                    showNotification('Falha ao comunicar com a IA. Tente novamente.', true);
+                } finally {
+                    elements.aiGenerateBtn.disabled = false;
+                    elements.aiBtnText.classList.remove('hidden');
+                    elements.aiBtnSpinner.classList.add('hidden');
+                }
+            };
+            
+            // QR Code Generation and Download Logic
+
+            const generateQRCode = async () => {
+                const { text, ...options } = getOptions();
+                if (!text) {
+                    clearCanvas();
+                    return;
+                }
+                elements.placeholder.style.display = 'none';
+                elements.canvas.style.display = 'block';
+                elements.downloadSection.classList.remove('hidden');
+                elements.downloadSection.classList.add('fade-in'); // Add animation on appearance
+
+                try {
+                    // Check if QRCode is defined before attempting to use it
+                    if (typeof QRCode === 'undefined') {
+                        throw new Error('The QR Code library is not loaded. Please reload the page.');
+                    }
+                    await new Promise((resolve, reject) => {
+                        QRCode.toCanvas(elements.canvas, text, options, (error) => {
+                            if (error) {
+                                console.error("Error from qrcode.js:", error);
+                                return reject(new Error(`Error generating QR Code: ${error.message || error}`));
+                            }
+                            resolve();
+                        });
+                    });
+                    if (state.logo) drawLogo();
+                    elements.canvas.classList.add('qr-pop-in'); // Apply animation to QR Code
+                } catch (err) {
+                    console.error('Error generating QR Code:', err);
+                    showNotification(err.message, true); // Display specific error message
+                    clearCanvas();
+                }
+            };
+            
+            const drawLogo = () => {
+                const ctx = elements.canvas.getContext('2d');
+                const canvasSize = elements.canvas.width;
+                const logoImg = new Image();
+                logoImg.src = state.logo;
+                logoImg.onload = () => {
+                    const logoSize = canvasSize * 0.25; // 25% of QR Code size
+                    const logoX = (canvasSize - logoSize) / 2;
+                    const logoY = (canvasSize - logoSize) / 2;
+
+                    // Add a white background for the logo to ensure contrast
+                    ctx.fillStyle = state.colorLight;
+                    ctx.fillRect(logoX - 8, logoY - 8, logoSize + 16, logoSize + 16); // Padding around the logo
+
+                    // Draw the logo
+                    ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+                };
+                logoImg.onerror = () => {
+                    console.error("Error loading logo image.");
+                    showNotification("Error: Could not load the logo image.", true);
+                };
+            };
+
+            const clearCanvas = () => {
+                const ctx = elements.canvas.getContext('2d');
+                ctx.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+                elements.placeholder.style.display = 'flex'; // Use flex to center
+                elements.canvas.style.display = 'none';
+                elements.downloadSection.classList.add('hidden');
+                elements.canvas.classList.remove('qr-pop-in'); // Remove animation on clear
+            };
+
+            const getOptions = () => {
+                elements.canvas.width = state.size;
+                elements.canvas.height = state.size;
+                return {
+                    text: state.text,
+                    width: state.size,
+                    margin: state.margin,
+                    color: { dark: state.colorDark, light: state.colorLight },
+                    errorCorrectionLevel: state.errorCorrectionLevel
+                };
+            };
+            
+            const updateAndGenerate = () => {
+                state.text = elements.textInput.value;
+                state.colorDark = elements.colorDark.value;
+                state.colorLight = elements.colorLight.value;
+                state.size = parseInt(elements.size.value, 10);
+                state.margin = parseInt(elements.margin.value, 10);
+                state.errorCorrectionLevel = elements.errorCorrectionLevel.value;
+                elements.colorDarkText.textContent = state.colorDark;
+                elements.colorLightText.textContent = state.colorLight;
+                elements.marginValue.textContent = state.margin;
+                clearTimeout(state.debounceTimer);
+                state.debounceTimer = setTimeout(generateQRCode, 300);
+            };
+
+            const downloadFile = (dataUrl, filename) => {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // --- Event Listeners ---
+            // Event listeners are added only once, upon full initialization
+            // This prevents duplication and ensures all elements are ready.
+
+            elements.downloadPNG.addEventListener('click', () => {
+                const dataUrl = elements.canvas.toDataURL('image/png');
+                downloadFile(dataUrl, 'qrcode.png');
+            });
+            
+            elements.downloadSVG.addEventListener('click', () => {
+                const { text, ...options } = getOptions();
+                if (!text) return;
+                // qrcode.js supports 'toString' for SVG
+                QRCode.toString(text, { type: 'svg', ...options }, (err, svgString) => {
+                    if (err) { console.error(err); showNotification("Error generating SVG.", true); return; }
+                    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                    const url = URL.createObjectURL(blob);
+                    downloadFile(url, 'qrcode.svg');
+                    URL.revokeObjectURL(url);
+                });
+            });
+
+            elements.logoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        state.logo = event.target.result;
+                        elements.clearLogoBtn.classList.remove('hidden');
+                        elements.logoWarning.classList.remove('hidden');
+                        updateAndGenerate();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    state.logo = null;
+                    elements.clearLogoBtn.classList.add('hidden');
+                    elements.logoWarning.classList.add('hidden');
+                    updateAndGenerate();
+                }
+            });
+            
+            elements.clearLogoBtn.addEventListener('click', () => {
+                state.logo = null;
+                elements.logoInput.value = ''; // Visually clear the file input
+                elements.clearLogoBtn.classList.add('hidden');
+                elements.logoWarning.classList.add('hidden');
+                updateAndGenerate();
+            });
+
+            // --- Dynamic Script Loader ---
+            const loadScript = (url, callback) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = () => {
+                    console.log(`Script loaded: ${url}`);
+                    callback(null); // No error
+                };
+                script.onerror = () => {
+                    console.error(`Failed to load script: ${url}`);
+                    callback(new Error(`Failed to load essential library: ${url}. Please check your internet connection.`));
+                };
+                document.head.appendChild(script);
+            };
+
+            // --- Application Initialization Mechanism ---
+            const initializeAppLogic = () => {
+                console.log("QRCode.js loaded successfully, initializing application logic.");
+                clearCanvas();
+                updateAndGenerate(); // Generate initial QR Code if there's text
+                
+                // Add event listeners ONLY once, after successful initialization
+                elements.aiGenerateBtn.addEventListener('click', handleAiGeneration);
+                // Add listeners for customization inputs (excluding aiPromptInput)
+                Object.keys(elements).forEach(key => {
+                    const el = elements[key];
+                    if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') && el.id !== 'aiPromptInput' && el.id !== 'logoInput') {
+                        el.addEventListener('input', updateAndGenerate);
+                    }
+                });
+            };
+
+            // Load QRCode.js dynamically
+            // CHANGE HERE: Using a different CDN (unpkg) for qrcode.js
+            loadScript("https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js", (error) => {
+                if (error) {
+                    showNotification(error.message, true);
+                    // Disable relevant UI elements if essential library fails to load
+                    elements.textInput.disabled = true;
+                    elements.aiGenerateBtn.disabled = true;
+                    elements.downloadPNG.disabled = true;
+                    elements.downloadSVG.disabled = true;
+                } else {
+                    // Give a small moment for the browser to register the global QRCode object, if needed
+                    setTimeout(() => {
+                        if (typeof QRCode !== 'undefined') {
+                            initializeAppLogic();
+                        } else {
+                            // Fallback if script loaded but QRCode object is still not defined (very rare)
+                            showNotification('Error: QRCode library loaded but object not found. Try reloading the page.', true);
+                            elements.textInput.disabled = true;
+                            elements.aiGenerateBtn.disabled = true;
+                            elements.downloadPNG.disabled = true;
+                            elements.downloadSVG.disabled = true;
+                        }
+                    }, 10); // Small delay
+                }
+            });
+        };
+    </script>
+</body>
+</html>
