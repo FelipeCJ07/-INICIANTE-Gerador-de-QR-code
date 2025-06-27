@@ -281,19 +281,23 @@
                 elements.aiBtnSpinner.classList.remove('hidden');
                 showNotification('A IA está a pensar...', false);
 
-                const systemPrompt = `You are a highly intelligent QR code content generator. Your task is to convert a user's natural language request into the precise string format required for a functional QR code.
-                - For Wi-Fi, use the format: WIFI:T:WPA;S:SSID;P:PASSWORD;; (for WPA, WPA2 or WEP. If it's an open network, use WIFI:T:nopass;S:SSID;;)
-                - For a vCard (contact card), use the format: BEGIN:VCARD\nVERSION:3.0\nN:LastName;FirstName\nFN:FirstName LastName\nORG:Organization\nTITLE:Title\nTEL;TYPE=WORK,VOICE:WorkPhone\nTEL;TYPE=HOME,VOICE:HomePhone\nEMAIL:EmailAddress\nURL:Website\nEND:VCARD (only include relevant fields from user's request)
-                - For a map link, use a Google Maps URL: https://www.google.com/maps?q=ADDRESS
-                - For calendar events (iCalendar), use: BEGIN:VCALENDAR... (full iCalendar format)
-                - For simple text or URLs, just return the text/URL.
-                - VERY IMPORTANT: Output ONLY the final, raw string for the QR code. Do not include any explanations, greetings, or markdown formatting like \`\`\`.`;
+                const systemPrompt = `Você é um gerador de conteúdo de QR Code altamente inteligente. A sua tarefa é converter o pedido em linguagem natural de um utilizador no formato de string preciso necessário para um QR Code funcional.
+                - Para Wi-Fi, utilize o formato: WIFI:T:WPA;S:SSID;P:PASSWORD;; (para WPA, WPA2 ou WEP. Se for rede aberta, pode ser WIFI:T:nopass;S:SSID;;)
+                - Para um vCard (cartão de contacto), utilize o formato: BEGIN:VCARD\nVERSION:3.0\nN:Sobrenome;Nome\nFN:Nome Sobrenome\nORG:Organização\nTITLE:Título\nTEL;TYPE=WORK,VOICE:TelefoneTrabalho\nTEL;TYPE=HOME,VOICE:TelefoneCasa\nEMAIL:EmailAddress\nURL:Website\nEND:VCARD (apenas inclua os campos relevantes do pedido do utilizador)
+                - Para um link de mapa, utilize um URL do Google Maps: https://www.google.com/maps?q=ENDEREÇO
+                - Para eventos de calendário (iCalendar), utilize: BEGIN:VCALENDAR... (formato completo iCalendar)
+                - Para texto ou URLs simples, devolva apenas o texto/URL.
+                - MUITO IMPORTANTE: Saída APENAS a string final e bruta para o QR Code. Não inclua explicações, saudações ou formatação markdown como \`\`\`.`;
                 
-                const fullPrompt = `${systemPrompt}\n\nUser request: "${userPrompt}"`;
+                const fullPrompt = `${systemPrompt}\n\nPedido do utilizador: "${userPrompt}"`;
                 
                 const chatHistory = [{ role: "user", parts: [{ text: fullPrompt }] }];
                 const payload = { contents: chatHistory };
-                const apiKey = ""; 
+                
+                // VAI PRECISAR DA SUA CHAVE DE API AQUI!
+                // Obtenha uma em https://aistudio.google.com/
+                const apiKey = "AIzaSyBCZrP3ZlT0JemBZM8AX5P-G--ebWSBpOc"; // <-- SUBSTITUA ESTE TEXTO PELA SUA CHAVE DE API REAL!
+                
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 try {
@@ -304,7 +308,9 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`API Error: ${response.statusText}`);
+                        // Improved error message for API failures
+                        const errorData = await response.json();
+                        throw new Error(`Erro na API: ${response.status} ${response.statusText} - ${errorData.error ? errorData.error.message : 'Resposta desconhecida.'}`);
                     }
 
                     const result = await response.json();
@@ -357,7 +363,7 @@
                 try {
                     // Check if QRCode is defined before attempting to use it
                     if (typeof QRCode === 'undefined') {
-                        throw new Error('The QR Code library is not loaded. Please reload the page.');
+                        throw new Error('A biblioteca de QR Code não está carregada. Por favor, recarregue a página.');
                     }
                     await new Promise((resolve, reject) => {
                         QRCode.toCanvas(elements.canvas, text, options, (error) => {
@@ -526,8 +532,7 @@
             };
 
             // Load QRCode.js dynamically
-            // CHANGE HERE: Using a different CDN (unpkg) for qrcode.js
-            loadScript("https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js", (error) => {
+            loadScript("https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js", (error) => {
                 if (error) {
                     showNotification(error.message, true);
                     // Disable relevant UI elements if essential library fails to load
